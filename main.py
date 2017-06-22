@@ -5,7 +5,10 @@ __author__ = ''
 '''
 
 # -*- coding: utf-8 -*-
+
 import urllib
+import urllib.parse
+import urllib.request
 from bs4 import BeautifulSoup
 import re
 #from os import listdir
@@ -55,7 +58,21 @@ def checkAvCode(avCode, i='*'):
     #scratch file name into a list under a certain dir
     #return [f for f in listdir(path) if isfile(join(path,f))]
 
-print (getURL(readFile('digist_text')))
+def transferUrl():
+    send_url = "http://www.linkexpander.com/get_url.php"
+    short_url = "http://ift.tt/2s5RqG4"
+    param = {"url": short_url, }
+    page_text = ""
+    param = urllib.parse.urlencode(param).encode(encoding='ascii')
+    with urllib.request.urlopen(url=send_url, data=param) as page:
+        for line in page.readlines():
+            page_text = page_text + line.decode('utf-8')
+    print(page_text)
+
+    return 0
+
+# print (getURL(readFile('digist_text')))
+transferUrl()
 # for ele in readFileIntoList(TARGETDIR):
 #         if checkAvCode(str(ele)):
 #             avCode = str(ele).split(".")[0]
