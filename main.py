@@ -6,29 +6,47 @@ __author__ = ''
 
 # -*- coding: utf-8 -*-
 import urllib
+import urllib.parse
+import urllib.request
 from bs4 import BeautifulSoup
+from datetime import datetime
 import re
 #from os import listdir
 # from os.path import isfile, join,exists
-DMMSEARCH = "http://www.dmm.co.jp/search/=/searchstr=TESTTEST/analyze=V1EBCFcEUAU_/" \
-            "n1=FgRCTw9VBA4GF1RWR1cK/n2=Aw1fVhQKX0BdC0VZX2kCQQU_/sort=ranking/"
 
-TARGETDIR = "z:\\video\\00_AV"
+TARGETDIR = "digist_text"
+FIND_STR = ".*ift\.tt"
+LOGERFILE = "dslog.txt"
+
 #http://www.dmm.co.jp/search/=/searchstr=jbs007/analyze=V1EBClcEUQU_/n1=FgRCTw9VBA4GF1RWR1cK/n2=Aw1fVhQKX0BdC0VZX2kCQQU_/sort=ranking/
 
-def readFile(file_name):
+# write the file name to a log file
+def logger(dl_URLs):
+    f = open(LOGERFILE,'a')
+    f.write(datetime.now().strftime('%Y-%m-%d %H:%M:%S')+'\r')
+    for dl in dl_URLs:
+        f.write(dl+'\r')
+    f.write("---------------" +'\r')
+    f.close()
+    return 0
 
+# clear the src file, with time stamp left
+def clearSrcFile():
+    f = open(TARGETDIR,'w')
+    f.write('import completed @ ' + datetime.now().strftime('%Y-%m-%d %H:%M:%S')+'\r')
+    return 0
+
+# read the html code from a certain file
+def readSrcFile(file_name):
     f = open(file_name)
     in_doc = f.read()
     f.close()
     return in_doc
 
+# get the download url from src file
 def getURL(in_doc):
-
-    html_doc = in_doc
-    soup = BeautifulSoup(html_doc, 'html.parser')
-
-    result = soup.findAll(href=re.compile(".*iff"))
+    soup = BeautifulSoup(in_doc, 'html.parser')
+    result = soup.findAll(href=re.compile(FIND_STR))
     rtn = []
     try:
         for r in result:
@@ -37,43 +55,31 @@ def getURL(in_doc):
     except BaseException:
         return ""
 
+# expand the short URLs to real URLs
+def expandLinks(origin_URL):
+    SHORT_URL_EXPANDER = "http://www.linkexpander.com/get_url.php"
+    rst = []
+    for iu in origin_URL:
+        #do transfoer
+        #iu = 'https://goo.gl/884XZo'
+        param = {"url": iu, }
+        page_text = ""
+        param = urllib.parse.urlencode(param).encode(encoding='ascii')
+        print ("linking..."+SHORT_URL_EXPANDER)
+        try:
+            with urllib.request.urlopen(url=SHORT_URL_EXPANDER, data=param) as page:
+                for line in page.readlines():
+                    page_text = page_text + line.decode('utf-8')
+            #print(page_text)
+            ou = page_text.split('<br />')[0]
+            rst.append(ou)
+            print (iu + " => " + ou + '\r')
+        except BaseException:
+            rst.append("error")
+    return rst
 
-def checkAvCode(avCode, i='*'):
-    # match the pattern :
-    # starts with 3~5 letters and followed by numbers with or without Hyphen in front
-    regex = r'\w{2,5}\D*\d{1,5}\.(.*)$'
-    if not(re.match(regex, avCode)):
-        #print avCode + " matches"
-
-        print ("No." + str(i) + " " + avCode + " not matches!")
-        return False
-    return True
-
-
-
-#def readFileIntoList(path):
-    #scratch file name into a list under a certain dir
-    #return [f for f in listdir(path) if isfile(join(path,f))]
-
-print (getURL(readFile('digist_text')))
-# for ele in readFileIntoList(TARGETDIR):
-#         if checkAvCode(str(ele)):
-#             avCode = str(ele).split(".")[0]
-#             coverUrl = getAccurateUrl(avCode)
-#             if coverUrl != "":
-#                 coverUrl = getCoverImage(coverUrl)
-#                 downLoadAs = TARGETDIR + '\\' + avCode + '.jpg'
-#                 # if file already exists
-#                 if exists(downLoadAs):
-#                     print ('Cover for ' + avCode + ' is already exists')
-#                 else:
-#                     print ('[cc]'+coverUrl)
-#                     if coverUrl != "":
-#                         data = urllib.request.urlretrieve(coverUrl, downLoadAs)
-#                         print ("Cover for " + avCode + " OK!\n")
-#                     else:
-#                         print ("Cover for " + avCode + " N/A \n")
-#             else:
-#                 print ("Not found the cover for " + avCode + "\n")
-#                 print ("test is not a null is not cally")
-
+# main
+urls_in_file = getURL(readSrcFile(TARGETDIR))
+expandLinks(urls_in_file)
+#logger(u)
+#clearSrcFile()
